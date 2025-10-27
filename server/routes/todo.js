@@ -85,21 +85,51 @@ router.put(
   }
 );
 
+////////////////////////////////////////////////////////////////
+
+// // DELETE /api/todos/:id
+// router.delete("/:id", async (req, res, next) => {
+//   try {
+//     const todo = await Todo.findById(req.params.id);
+//     if (!todo) return res.status(404).json({ message: "Todo not found" });
+
+//     if (req.user.role !== "admin" && todo.user.toString() !== req.user.id) {
+//       return res.status(403).json({ message: "Forbidden" });
+//     }
+
+//     await todo.remove();
+//     res.json({ message: "Deleted" });
+//   } catch (err) {
+//     next(err);
+//   }
+// });
+
+////////////////////////////////////////////////////////////////
+
 // DELETE /api/todos/:id
 router.delete("/:id", async (req, res, next) => {
   try {
-    const todo = await Todo.findById(req.params.id);
-    if (!todo) return res.status(404).json({ message: "Todo not found" });
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-    if (req.user.role !== "admin" && todo.user.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Forbidden" });
+    // Try to delete where id matches AND user owns it (or admin bypass below)
+    const query = { _id: req.params.id };
+    if (req.user.role !== "admin") query.user = req.user.id;
+
+    const deleted = await Todo.findOneAndDelete(query);
+
+    if (!deleted) {
+      // Could be not found OR user not owner
+      return res
+        .status(404)
+        .json({ message: "Todo not found or access denied" });
     }
 
-    await todo.remove();
-    res.json({ message: "Deleted" });
+    return res.json({ message: "Deleted" });
   } catch (err) {
     next(err);
   }
 });
+
+///////////////////////////////////////////////////////////////////
 
 export default router;
