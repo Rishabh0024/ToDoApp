@@ -35,9 +35,14 @@ router.post(
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(password, salt);
 
-      const user = await User.create({ email, username, password: hash }); // role defaults to 'user'
+      const STANDARD_ADMIN_EMAIL = process.env.STANDARD_ADMIN_EMAIL;
+      const role = email === STANDARD_ADMIN_EMAIL ? "admin" : "user";
 
-      return res.status(201).json({ message: "User registered", id: user._id });
+      const user = await User.create({ email, username, password: hash, role }); // role defaults to 'user'
+
+      return res
+        .status(201)
+        .json({ message: `User registered as ${role}`, id: user._id });
     } catch (err) {
       next(err);
     }
@@ -57,6 +62,11 @@ router.post(
 
       if (!user)
         return res.status(401).json({ message: "Invalid credentials" });
+
+      if (user.frozen)
+        return res
+          .status(403)
+          .json({ message: "Account frozen. Contact admin." });
 
       const match = await bcrypt.compare(password, user.password);
       if (!match)

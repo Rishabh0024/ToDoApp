@@ -21,5 +21,9 @@ const todoSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+todoSchema.virtual("isOverdue").get(function () {
+  return this.dueDate && this.dueDate < new Date() && !this.completed;
+});
+
 const todo = mongoose.model("Todo", todoSchema);
 export default todo;

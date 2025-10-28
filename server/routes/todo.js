@@ -130,6 +130,25 @@ router.delete("/:id", async (req, res, next) => {
   }
 });
 
+// GET /api/todos?search=&category=
+router.get("/", async (req, res, next) => {
+  try {
+    const { search, category } = req.query;
+    const query = req.user.role === "admin" ? {} : { user: req.user.id };
+
+    if (search) query.title = { $regex: search, $options: "i" };
+    if (category && ["Urgent", "Non-Urgent"].includes(category))
+      query.category = category;
+
+    const todos = await Todo.find(query)
+      .populate("user", "username email")
+      .sort({ createdAt: -1 });
+    res.json(todos);
+  } catch (err) {
+    next(err);
+  }
+});
+
 ///////////////////////////////////////////////////////////////////
 
 export default router;
